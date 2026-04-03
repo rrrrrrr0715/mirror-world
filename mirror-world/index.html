@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>阮遇·镜像世界</title>
+    <style>
+        body {
+            background-color: #FAF8F5;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .world {
+            background-color: #e8e0d5;
+            border-radius: 48px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .avatar {
+            background-color: #d9cdb3;
+            width: 100px;
+            height: 100px;
+            border-radius: 100px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            box-shadow: inset 0 -2px 0 #b8a88a;
+        }
+        .items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+            min-height: 80px;
+        }
+        .item {
+            background-color: #fff9ef;
+            border-radius: 40px;
+            padding: 6px 12px;
+            font-size: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .button-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #f0e4d0;
+            border: none;
+            border-radius: 60px;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #4a3b2c;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        button:active {
+            transform: scale(0.96);
+        }
+        .status {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #7f6e58;
+        }
+        .message {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #4a6a3b;
+            background: #eef5e8;
+            border-radius: 20px;
+            padding: 6px 12px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<div class="world">
+    <div class="avatar">🧑‍🎤</div>
+    <div class="items" id="itemsContainer"></div>
+    <div class="button-panel">
+        <button data-action="dog">🐕 遛狗</button>
+        <button data-action="fitness">💪 健身</button>
+        <button data-action="tv">📺 看剧</button>
+        <button data-action="mask">💆 护肤</button>
+        <button data-action="game">🎮 打游戏</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div id="autoMessage" class="message" style="display:none;"></div>
+</div>
+<script>
+    // 物品映射
+    const actionMap = {
+        'dog': { emoji: '🐕', name: '柯基小狗' },
+        'fitness': { emoji: '💪', name: '哑铃' },
+        'tv': { emoji: '📀', name: '觉醒年代DVD' },
+        'mask': { emoji: '💚', name: 'V脸面膜' },
+        'game': { emoji: '🎮', name: '游戏手柄' }
+    };
+
+    // 从本地存储读取已有物品
+    let items = JSON.parse(localStorage.getItem('mirrorItems')) || [];
+
+    function saveItems() {
+        localStorage.setItem('mirrorItems', JSON.stringify(items));
+    }
+
+    function renderItems() {
+        const container = document.getElementById('itemsContainer');
+        container.innerHTML = '';
+        items.forEach(item => {
+            const span = document.createElement('span');
+            span.className = 'item';
+            span.textContent = item.emoji + ' ' + item.name;
+            container.appendChild(span);
+        });
+        const statusDiv = document.getElementById('status');
+        if (items.length === 0) {
+            statusDiv.innerHTML = '✨ 还没有物品，点上面的按钮吧 ✨';
+        } else {
+            statusDiv.innerHTML = '📦 你的小世界已经长出 ' + items.length + ' 样东西啦';
+        }
+    }
+
+    function addItem(emoji, name, isAuto = false) {
+        items.push({ emoji, name });
+        saveItems();
+        renderItems();
+        if (isAuto) {
+            const msgDiv = document.getElementById('autoMessage');
+            msgDiv.textContent = `✨ 光哥帮你添加了：${emoji} ${name} ✨`;
+            msgDiv.style.display = 'inline-block';
+            setTimeout(() => { msgDiv.style.display = 'none'; }, 3000);
+        }
+    }
+
+    // 处理URL参数自动添加
+    function handleUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const addParam = urlParams.get('add');
+        if (addParam && actionMap[addParam]) {
+            const { emoji, name } = actionMap[addParam];
+            // 检查是否已存在相同物品（避免重复添加）
+            const alreadyExists = items.some(item => item.emoji === emoji && item.name === name);
+            if (!alreadyExists) {
+                addItem(emoji, name, true);
+            }
+            // 清除URL参数，避免刷新重复添加
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    // 绑定按钮事件
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const action = btn.getAttribute('data-action');
+            if (actionMap[action]) {
+                const { emoji, name } = actionMap[action];
+                addItem(emoji, name, false);
+            }
+        });
+    });
+
+    renderItems();
+    handleUrlParams();
+</script>
+</body>
+</html>
